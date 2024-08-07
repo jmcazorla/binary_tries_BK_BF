@@ -21,7 +21,7 @@ using namespace sdsl;
 
 bool runs = false;
 bool verbose = false;
-bool parallel = false;
+bool parallel = true;
 uint32_t block_size = 512; //Only needed on binTrie_il
 uint8_t low_p = 2;
 
@@ -232,7 +232,7 @@ int main(int argc, char const *argv[]) {
         std::cout   << "collection filename "   // (*)
                         "query log "            // (*)
                         "[--parallel p] "       
-                        "[--type_intersection i] " // (*)
+                        "[--type_intersection type] " // (*)
                         "[--out r]"
                     <<
         std::endl;
