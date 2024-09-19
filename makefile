@@ -8,10 +8,13 @@ vpath %.hpp src
 
 program: $(OBJDIR)/intersection_query_log.o \
          $(OBJDIR)/barbay_kenyon_log.o \
-		 $(OBJDIR)/delta_barby_kenyon_log.o 
-	$(CC) $(CFLAGS) test/build_tries.cpp -o $(BUILDIR)/build.out $(SDSLFLAGS) 
+		 $(OBJDIR)/delta_barby_kenyon_log.o \
+		 $(OBJDIR)/delta_trie_certificate_log.o
+	$(CC) $(CFLAGS) test/build_tries.cpp -o $(BUILDIR)/build_tries.out $(SDSLFLAGS) 
+	$(CC) $(CFLAGS) test/build_tries_h.cpp -o $(BUILDIR)/build.out $(SDSLFLAGS) 
 	$(CC) -o $(BUILDIR)/queries_bk.out $(OBJDIR)/barbay_kenyon_log.o  $(CFLAGS) $(SDSLFLAGS)
 	$(CC) -o $(BUILDIR)/queries_delta_bk.out $(OBJDIR)/delta_barby_kenyon_log.o  $(CFLAGS) $(SDSLFLAGS)
+	$(CC) -o $(BUILDIR)/queries_delta_trie.out $(OBJDIR)/delta_trie_certificate_log.o  $(CFLAGS) $(SDSLFLAGS)
 	$(CC) -o $(BUILDIR)/queries.out $(OBJDIR)/intersection_query_log.o  $(CFLAGS) $(SDSLFLAGS) -pthread 
 
 
@@ -24,10 +27,13 @@ $(OBJDIR)/delta_barby_kenyon_log.o: test/delta_barby_kenyon_log.cpp
 	mkdir -p obj
 	$(CC) -c -o $@ test/delta_barby_kenyon_log.cpp $(CFLAGS)  $(SDSLFLAGS)
 
+$(OBJDIR)/delta_trie_certificate_log.o: test/delta_trie_certificate_log.cpp
+	mkdir -p obj
+	$(CC) -c -o $@ test/delta_trie_certificate_log.cpp $(CFLAGS)  $(SDSLFLAGS)
+
 $(OBJDIR)/intersection_query_log.o: test/intersection_query_log.cpp
 	mkdir -p obj
 	$(CC) -c -o $@ test/intersection_query_log.cpp $(CFLAGS) $(SDSLFLAGS)
-	# $(CC) -c -o $@ test/intersection_query_log.cpp
 
 clean:
 	rm -f core $(OBJDIR)/*.o

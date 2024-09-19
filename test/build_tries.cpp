@@ -1,19 +1,25 @@
 #include <iostream>
 #include <fstream>
-#include "../src/flatBinTrieRL.hpp"
-#include "../src/hybrid_structure_flat.hpp"
+#include "../src/flatBinTrie.hpp"
 #include <sdsl/bit_vectors.hpp>
-#include "../src/binTrie_ilRL.hpp"
-#include "../src/hybrid_structure_il.hpp"
-
 
 
 using namespace std;
 using namespace sdsl;
 
-bool verbose = false;
-uint32_t block = 512;
-uint8_t low_p = 2;
+
+bool set_num_64 = false;
+
+vector<uint64_t>* read_inv_list_64(std::ifstream &input_stream, uint32_t n) {
+    vector <uint64_t>* il = new vector<uint64_t>();
+    il -> reserve(n);
+    for (uint32_t i = 0; i < n; ++i) {
+        uint64_t x;
+        input_stream.read(reinterpret_cast<char *>(&x), sizeof(uint64_t));
+        il -> push_back(x);
+    }
+    return il;
+}
 
 vector<uint64_t>* read_inv_list(std::ifstream &input_stream, uint32_t n) {
 
@@ -27,9 +33,8 @@ vector<uint64_t>* read_inv_list(std::ifstream &input_stream, uint32_t n) {
     return il;
 }
 
-template <uint32_t block_size, uint8_t low_part_size>
-void buildCollection(std::string input_path, std::string out_path, uint64_t min_size,
-                    uint64_t max_size, int rank_type, bool runs, int select_type) {
+template <uint32_t block_size>
+void buildCollection(std::string input_path, std::string out_path, uint64_t min_size, uint64_t max_size, int rank_type, bool runs) {
     std::ifstream input_stream;
     input_stream.open(input_path, std::ios::binary | std::ios::in);
     if (!input_stream.is_open()) {
@@ -46,12 +51,13 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
     }
     
 
-    u_int64_t _1, u;
+    uint32_t _1, u;
     // Read universe of collection
     input_stream.read(reinterpret_cast<char *>(&_1), sizeof(_1));
-    input_stream.read(reinterpret_cast<char *>(&u), sizeof(u));
+    // input_stream.read(reinterpret_cast<char *>(&u), sizeof(u));
+    set_num_64 ? input_stream.read(reinterpret_cast<char *>(&u), sizeof(uint64_t)) : input_stream.read(reinterpret_cast<char *>(&u), sizeof(uint32_t));
 
-    u_int64_t nSets = 0;
+    uint32_t nSets = 0;
     while (true) {
         uint32_t n;
         input_stream.read(reinterpret_cast<char *>(&n), 4);
@@ -61,20 +67,15 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
         if (n > min_size && (n <= max_size || max_size == 0)) {
             nSets++;
         }
-        input_stream.seekg(4*n, ios::cur);
+
+        input_stream.seekg(n*(set_num_64 ? sizeof(uint64_t) : sizeof(uint32_t)), ios::cur);
     }
     // Set file pointer in first set
     input_stream.clear();
-    input_stream.seekg(2*sizeof(u), ios::beg);
-    // uint32_t low_p = low_part_size;
+
+    set_num_64 ? input_stream.seekg(sizeof(uint32_t) + sizeof(uint64_t), ios::beg) : input_stream.seekg(2*sizeof(uint32_t), ios::beg);
     // Write universe in out file
     if (out_path != "") {
-        out.write(reinterpret_cast<char *> (&rank_type), sizeof(rank_type));
-        if (rank_type == 1)
-            out.write(reinterpret_cast<char *> (&block), sizeof(block));
-        out.write(reinterpret_cast<char *> (&select_type), sizeof(select_type));
-        out.write(reinterpret_cast<char *> (&runs), sizeof(runs));
-        out.write(reinterpret_cast<char *> (&low_p), sizeof(low_p));
         out.write(reinterpret_cast<char *> (&nSets), sizeof(nSets));
         out.write(reinterpret_cast<char *> (&_1), sizeof(_1));
         out.write(reinterpret_cast<char *> (&u), sizeof(u));
@@ -87,7 +88,10 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
     uint64_t n_il = 0;
 
     uint32_t max_n = 0;
-    while (true) {        
+    uint32_t print = 1;
+    
+    while (true) {
+        
         uint32_t n;
         input_stream.read(reinterpret_cast<char *>(&n), 4);
         if (input_stream.eof()){
@@ -95,103 +99,64 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
         }
         
         uint64_t trie_bytes_size = 0;
-        uint64_t hs_bytes_size = 0;
         if (n > min_size && (n <= max_size || max_size == 0)){
-            vector <uint64_t> *il = read_inv_list(input_stream, n);
+            vector <uint64_t> * il = set_num_64 ?  read_inv_list_64(input_stream, n) : read_inv_list(input_stream, n);
             uint64_t max_value = (*il)[n - 1];
             max_n = max_n < n ? n : max_n;
-            
-            if (rank_type == 0 && select_type == 0 ) {
-                HybridStructure_flat<rank_support_v<1>, select_support_mcl<1>, low_part_size> hs;
-                hs = HybridStructure_flat<rank_support_v<1>, select_support_mcl<1>, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();
+
+            if(print == 0) cout  <<rank_type<< " - "<< " - " << endl;
+
+
+            if (rank_type == 0 ) {
+
+                    flatBinTrie<rank_support_v<1>> trie_v;
+                    trie_v = flatBinTrie<rank_support_v<1>>(*il, u);
+                    if (runs)
+                        trie_v.encodeRuns();
+                    if (out_path != "") {
+                        trie_v.serialize(out);
+                    }
+                    trie_bytes_size = trie_v.size_in_bytes();
+                    trie_v.free(); 
+               
             }
-            else if (rank_type == 0  && select_type == 1 ) {
-                HybridStructure_flat<rank_support_v<1>, select_support_scan<1>, low_part_size> hs;
-                hs = HybridStructure_flat<rank_support_v<1>, select_support_scan<1>, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();                
+            if (rank_type == 1  ) {
+
+                    flatBinTrie<rank_support_v5<1>> trie_v5;
+                    trie_v5 = flatBinTrie<rank_support_v5<1>>(*il, u);
+                    if (runs)
+                        trie_v5.encodeRuns();
+                    if (out_path != "") {
+                        trie_v5.serialize(out);
+                    }
+                    trie_bytes_size = trie_v5.size_in_bytes();
+                    trie_v5.free(); 
+                
             }
-            else if (rank_type == 2 && select_type == 0 ) {
-                HybridStructure_flat<rank_support_v5<1>, select_support_mcl<1>, low_part_size> hs;
-                hs = HybridStructure_flat<rank_support_v5<1>, select_support_mcl<1>, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();
-            }
-            else if (rank_type == 2  && select_type == 1 ) {
-                HybridStructure_flat<rank_support_v5<1>, select_support_scan<1>, low_part_size> hs;
-                hs = HybridStructure_flat<rank_support_v5<1>, select_support_scan<1>, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();                
-            }
-            else if (rank_type == 1 && select_type == 0 ) {
-                HybridStructure_il< select_support_mcl<1>, block_size, low_part_size> hs;
-                hs = HybridStructure_il< select_support_mcl<1>, block_size, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();
-            }
-            else if (rank_type == 1 && select_type == 1 ) {
-                HybridStructure_il< select_support_scan<1>, block_size, low_part_size> hs;
-                hs = HybridStructure_il<select_support_scan<1>, block_size, low_part_size>(*il, u);
-                if (runs)
-                    hs.encodeRuns();
-                if (out_path != "") {
-                    hs.serialize(out);
-                }
-                hs_bytes_size = hs.size_in_bytes();
-                hs.free();
-            }            
+
 
             total_size += trie_bytes_size;
             total_elements += n;
             n_il++;
-            total_hs_size += hs_bytes_size;
 
-            if ((n_il % 1000) == 0 && verbose) {
+            // cout << "#Elements: " << n << " | Bpi: " << (float)(trie_bytes_size*8)/n << endl;
+            if ((n_il % 1000) == 0) {
                 cout << n_il  <<" Sets processed " << endl;
             }
 
-            delete il;
         }
-
         else {
-            input_stream.seekg(4*n, ios::cur);
+            input_stream.seekg(n*(set_num_64 ? sizeof(uint64_t) : sizeof(uint32_t)), ios::cur);
         }
-        
+       
     }
     input_stream.close();
     out.close();
 
+
     cout << "Maximum number of elements in sets: " << max_n << endl;
     cout << "Total inverted lists: " << n_il << "| Bpi: " << (float)(total_size*8)/total_elements << endl;
     cout << "Total ints: " << total_elements << endl;
-    cout << "Total HS: " << n_il << "| Bpi: " << (float)(total_hs_size*8)/total_elements << endl;
     
     return;
 }
@@ -201,12 +166,11 @@ int main(int argc, char** argv) {
     int mandatory = 3;
 
     if (argc < mandatory){
-        std::cout   << "collection filename (*)"       // (*)
+        std::cout   << "collection filename "       // (*)
                         "[--min_size m] "           // (*)
                         "[--max_size m] "           // (*)
-                        "[--rank v] (*)"               // (*)
-                        "[--runs r] (*)"               // (*)
-                        "[--low_part_size l] (*)"      // (*)
+                        "[--rank v] "               // (*)
+                        "[--runs r] "               // (*)
                         "[--out output_filename]"
                     <<
         std::endl;
@@ -214,12 +178,10 @@ int main(int argc, char** argv) {
     }
 
     int rank = 0;
-    int select = 0;
     uint64_t min_size = 0;
     uint64_t max_size = 0;
-    // uint32_t block_size = 512;
-    // uint32_t low_part_size = 2;
-    
+    uint32_t block_size = 512;
+
     bool runs = false;
     std::string output_filename = "";
     std::string input_filename = std::string(argv[1]);
@@ -238,14 +200,8 @@ int main(int argc, char** argv) {
             if (std::string(argv[i]) == "v") {
                 rank = 0;
             }
-            else if (std::string(argv[i]) == "il") {
-                rank = 1;
-                i++;
-                block = std::atoi(argv[i]);
-                // block = block != 128 && block != 256 ? 512 : block;
-            }
             else {
-                rank = 2;
+                rank = 1;
             }
         }
         if (std::string(argv[i]) == "--runs") {
@@ -255,30 +211,12 @@ int main(int argc, char** argv) {
             else
                 runs = false;
         }
-        // if (std::string(argv[i]) == "--select") {
-        //     ++i;
-        //     if (std::string(argv[i]) == "mcl")
-        //         select = 0;
-        //     else if (std::string(argv[i]) == "scan")
-        //         select = 1;
-        //     else 
-        //         select = 2;    
-        // }
-        if (std::string(argv[i]) == "--low_part_size") {
-            ++i;
-            low_p = std::atoi(argv[i]);
-        }
-        if (std::string(argv[i]) == "--verbose") {
-            ++i;
-            if (std::string(argv[i]) == "t")
-                verbose = true;
-            else
-                verbose = false;
-        }
         if (std::string(argv[i]) == "--out") {
             ++i;
             output_filename = std::string(argv[i]);
         }
+        if (std::string(argv[i]) == "--set_num_64")
+            set_num_64 = true;
     }
     
     std::cout << "Min size: " << min_size << std::endl;
@@ -287,68 +225,26 @@ int main(int argc, char** argv) {
     if (rank  == 0){
         std::cout << "rank v" << std::endl;
     }
-    else if (rank == 1) {
-        std::cout << "rank il" << std::endl;
-        std::cout << "Block size:" << block << std::endl;
-    }
     else {
         std::cout << "rank v5" << std::endl;
     }
     std::cout << "Runs: " << (runs == 1 ? "true" : "false") << std::endl;
-   
-    std::cout << "Low part size: " << low_p << std::endl;
     
+    std::cout << " set_num_64: " << (set_num_64 == 1 ? "true" : "false") << std::endl;
     std::cout << "Output file name: "<< output_filename << endl;
     
-    switch (low_p)  {
-        case 1:
-            if (block == 128)
-                buildCollection<128, 1>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 1>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else 
-                buildCollection<512, 1>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
-        case 2:
-            if (block == 128)
-                buildCollection<128, 2>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 2>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else   
-                buildCollection<512, 2>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
-        case 4:
-            if (block == 128)
-                buildCollection<128, 4>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 4>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else   
-                buildCollection<512, 4>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
-        case 8:
-            if (block == 128)
-                buildCollection<128, 8>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 8>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else    
-                buildCollection<512, 8>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
-        case 12:
-            if (block == 128)
-                buildCollection<128, 12>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 12>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else
-                buildCollection<512, 12>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
-        case 16:
-        default:
-            if (block == 128)
-                buildCollection<128, 16>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else if(block == 256)
-                buildCollection<256, 16>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            else
-                buildCollection<512, 16>(input_filename, output_filename, min_size, max_size, rank, runs, select);
-            break;
+    // Call function here
+    
+    if (block_size == 512) {
+            buildCollection<512>(input_filename, output_filename, min_size, max_size, rank, runs);
+    } else if (block_size == 256) {
+            buildCollection<256>(input_filename, output_filename, min_size, max_size, rank, runs);
+    } else {
+            buildCollection<512>(input_filename, output_filename, min_size, max_size, rank, runs);
     }
+
+        
+    // std::cout << "Presiona Enter para sainput_streamlir...";
+    // std::cin.get(); // Espera a que el usuario presione Enter
+    // return 0;
 }
