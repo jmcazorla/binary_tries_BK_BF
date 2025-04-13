@@ -13,7 +13,7 @@ using namespace sdsl;
 
 bool verbose = false;
 uint32_t block = 512;
-uint8_t low_p = 2;
+uint32_t low_p = 2;
 
 vector<uint64_t>* read_inv_list(std::ifstream &input_stream, uint32_t n) {
 
@@ -46,12 +46,12 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
     }
     
 
-    u_int64_t _1, u;
+    uint32_t _1, u;
     // Read universe of collection
     input_stream.read(reinterpret_cast<char *>(&_1), sizeof(_1));
     input_stream.read(reinterpret_cast<char *>(&u), sizeof(u));
 
-    u_int64_t nSets = 0;
+    uint32_t nSets = 0;
     while (true) {
         uint32_t n;
         input_stream.read(reinterpret_cast<char *>(&n), 4);
@@ -251,7 +251,10 @@ int main(int argc, char** argv) {
         }
         if (std::string(argv[i]) == "--low_part_size") {
             ++i;
+            std::cout << "low_part_size " <<std::atoi(argv[i]) << " " << low_p<< std::endl;
             low_p = std::atoi(argv[i]);
+
+            std::cout << "low_part_size " <<std::atoi(argv[i]) << " " << low_p<< std::endl;
         }
         if (std::string(argv[i]) == "--verbose") {
             ++i;

@@ -143,6 +143,7 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
             if ((n_il % 1000) == 0) {
                 cout << n_il  <<" Sets processed " << endl;
             }
+            delete il;
 
         }
         else {

@@ -23,7 +23,7 @@ bool runs = false;
 bool verbose = false;
 bool parallel = true;
 uint32_t block_size = 512; //Only needed on binTrie_il
-uint8_t low_p = 2;
+uint32_t low_p = 2;
 
 template <class HybridStructure>
 map<uint64_t, HybridStructure*> loadSequencesHS(std::ifstream &in, vector<vector<uint64_t>> &queries, u_int64_t n){
@@ -84,7 +84,7 @@ void performIntersectionsHS( std::ifstream &in_sequences, std::string query_path
     vector<vector<uint64_t>> queries;
     map<uint64_t, HybridStructure*> sequences;
 
-    u_int64_t _1, u, n;
+    uint32_t _1, u, n;
     in_sequences.read(reinterpret_cast<char*>(&n), sizeof(n));
     in_sequences.read(reinterpret_cast<char*>(&_1), sizeof(_1));
     in_sequences.read(reinterpret_cast<char*>(&u), sizeof(u));
