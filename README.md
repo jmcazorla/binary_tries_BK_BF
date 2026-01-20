@@ -16,7 +16,7 @@ Now the all executables are in **build** folder.
 Our implementation only need the collection of docID's (posting lists) following format of [**dsi2**](https://github.com/ot/ds2i) and [**pisa**](https://github.com/pisa-engine/pisa) projects, the posting lists are written as 32-bit little-endian unsigned integers. The files containing the collections must start with a singleton binary sequence, where it's only integer is the number of documents of collection or universe (1 u). It is then followed by one binary sequence for each posting list. 
 
 ## How to compress collection
-For compress a collection need to use build.out exec as following.
+For compress a collection need to use build exec as following.
 
     ./build [collection_file_name] [--rank rank_type] [block_size] [--runs r] [--low_part_size l] [--out o] [--min_size min] [--max_size max]
 Where:
