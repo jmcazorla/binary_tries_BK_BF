@@ -118,23 +118,25 @@ void performIntersectionsHS( std::ifstream &in_sequences, std::string query_path
         vector<uint64_t> intersection;
         if (Hs.size() <= 16){
             uint64_t time_10 = 0;
-            for(int rep = 0; rep < trep; ++rep) {
-                auto start = std::chrono::high_resolution_clock::now();
-                
-                Intersect_HS<HybridStructure, low_part_size>(Hs, intersection, intersectBF, runs_encoded, parallel);
-                auto end = std::chrono::high_resolution_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-                auto time = elapsed.count();
-                total_time += time;
-                time_10 += time;
-                if (rep != trep-1)
-                    intersection.clear();    
-            }
-            if (out.is_open()) {
-                out << Hs.size() << "," << (float)time_10/trep<< "," << intersection.size()<< std::endl;
-            }
+            // if(nq <= 11) {
+                // trep = 1;
+                for(int rep = 0; rep < trep; ++rep) {
+                    auto start = std::chrono::high_resolution_clock::now();
+                    Intersect_HS<HybridStructure, low_part_size>(Hs, intersection, intersectBF, runs_encoded, parallel);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+                    auto time = elapsed.count();
+                    total_time += time;
+                    time_10 += time;
+                    if (rep != trep-1)
+                        intersection.clear();    
+                }
+                if (out.is_open()) {
+                    out << Hs.size() << "," << (double)(time_10*1e-3)/trep<< "," << intersection.size()<< std::endl;
+                }
+            // }
             ++nq;
-            if (nq % 1000 == 0) {
+            if (nq % 1000 == 0 && verbose) {
                 std::cout << nq << " queries processed" << std::endl;
             }
         }
@@ -240,12 +242,6 @@ int main(int argc, char const *argv[]) {
     }
 
 
-bool verbose = false;
-
-
-
-
-
     int rank = 0;
     int select = 0;
 
@@ -286,6 +282,9 @@ bool verbose = false;
         if (std::string(argv[i]) == "--out") {
             ++i;
             output_filename = std::string(argv[i]);
+        }
+        if (std::string(argv[i]) == "--verbose") {
+            verbose = true;
         }
     }
     

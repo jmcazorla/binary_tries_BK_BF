@@ -117,6 +117,7 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
                         trie_v.serialize(out);
                     }
                     trie_bytes_size = trie_v.size_in_bytes();
+                    
                     trie_v.free(); 
                
             }

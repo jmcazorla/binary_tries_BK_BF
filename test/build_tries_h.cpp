@@ -170,6 +170,8 @@ void buildCollection(std::string input_path, std::string out_path, uint64_t min_
             n_il++;
             total_hs_size += hs_bytes_size;
 
+            cout << n_il << "," << n << "," << hs_bytes_size << endl;
+
             if ((n_il % 1000) == 0 && verbose) {
                 cout << n_il  <<" Sets processed " << endl;
             }
@@ -236,7 +238,7 @@ int main(int argc, char** argv) {
             else if (std::string(argv[i]) == "il") {
                 rank = 1;
                 i++;
-                block = std::atoi(argv[i]);
+                // block = std::atoi(argv[i]);
             }
             else {
                 rank = 2;

@@ -174,7 +174,7 @@ void performBarbayKenyon( std::string sequences_path, std::string query_path,
             if (out.is_open()) {
                 out << total_set_elements << "," << (float)time_10/trep<< "," << intersection.size() << std::endl;
             }
-            // std::cout << nq <<"|Time execution: " << (double)(time_10*1e-3)/(trep) << "[ms] " << intersection.size() << std::endl;
+            std::cout << nq <<"," << total_set_elements << "," << (double)(time_10*1e-3)/(trep) << "," << intersection.size() << std::endl;
             ++nq;
             if (nq % 500 == 0) {
                 std::cout << nq << " queries processed" << std::endl;
